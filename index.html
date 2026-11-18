@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Quản Lý Người Ra Vào | Smart Access Control & PIR Sensor</title>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body data-theme="light">
+    <!-- Nền hiệu ứng lưới công nghệ cao -->
+    <div class="tech-grid-bg"></div>
+
+    <div class="dashboard-wrapper">
+        <!-- ==================== 1. HEADER / TOPBAR ==================== -->
+        <header class="topbar">
+            <div class="brand-group">
+                <div class="brand-icon-wrapper">
+                    <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    <span class="radar-ping"></span>
+                </div>
+                <div class="brand-text">
+                    <div class="brand-title">QUẢN LÝ NGƯỜI RA VÀO</div>
+                    <div class="brand-subtitle">Hệ Thống Giám Sát Cửa Ra Vào & Chiếu Sáng Bằng Cảm Biến Hồng Ngoại (PIR IoT)</div>
+                </div>
+            </div>
+
+            <!-- Các chỉ báo hệ thống & Đồng hồ -->
+            <div class="header-status-group">
+                <!-- Cụm trạng thái kết nối phần cứng -->
+                <div class="status-badge-container" id="hwConnectionBadge" title="Bấm để mô phỏng chuyển trạng thái Online/Offline">
+                    <span class="status-dot online"></span>
+                    <div class="status-info">
+                        <span class="status-label">PHẦN CỨNG (ESP32)</span>
+                        <span class="status-val text-success" id="hwStatusText">ONLINE (CONNECTED)</span>
+                    </div>
+                </div>
+
+                <!-- Nút chuyển đổi Giao diện Sáng / Tối -->
+                <button class="icon-btn" id="themeToggleBtn" title="Chuyển đổi giao diện Sáng / Tối">
+                    <!-- Biểu tượng Mặt trời (cho chế độ sáng) -->
+                    <svg class="theme-icon sun" id="themeIconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <!-- Biểu tượng Mặt trăng (cho chế độ tối) -->
+                    <svg class="theme-icon moon hidden" id="themeIconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+
+                <!-- Nút bật tắt âm thanh cảnh báo -->
+                <button class="icon-btn" id="audioToggleBtn" title="Bật/Tắt âm thanh còi Beep">
+                    <svg class="audio-icon on" id="audioIconOn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.08"></path>
+                    </svg>
+                    <svg class="audio-icon off hidden" id="audioIconOff" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                        <line x1="23" y1="9" x2="17" y2="15"></line>
+                        <line x1="17" y1="9" x2="23" y2="15"></line>
+                    </svg>
+                </button>
+
+                <!-- Đồng hồ thời gian thực -->
+                <div class="realtime-clock-box">
+                    <div class="clock-time font-mono" id="realtimeClock">00:00:00</div>
+                    <div class="clock-date" id="realtimeDate">Thứ ..., 00/00/0000</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- ==================== 2. THỐNG KÊ TỔNG QUAN (METRIC CARDS) ==================== -->
+        <section class="metrics-grid">
+            <!-- Thẻ 1: Tổng lượt người ra vào trong ngày -->
+            <div class="metric-card card-glow-primary">
+                <div class="card-header-row">
+                    <span class="card-category">TỔNG LƯỢT RA VÀO HÔM NAY</span>
+                    <div class="card-icon-bubble bg-blue-subtle text-primary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="metric-value font-mono" id="metricTotalDetections">0</div>
+                <div class="metric-footer">
+                    <span class="badge badge-subtle-primary" id="todayDetectionTag">Hôm nay</span>
+                    <span class="metric-desc" id="detectionsPerHourDesc">Tổng lượt qua cửa trong ngày</span>
+                </div>
+            </div>
+
+            <!-- Thẻ 2: Trạng thái Cảm biến Cửa Hiện tại -->
+            <div class="metric-card card-glow-sensor" id="sensorMetricCard">
+                <div class="card-header-row">
+                    <span class="card-category">TRẠNG THÁI CỬA (CẢM BIẾN PIR)</span>
+                    <div class="card-icon-bubble bg-sensor-subtle" id="sensorIconBubble">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M3 12h1m16 0h1M12 3v1m0 16v1M5.6 5.6l.7.7m11.4 11.4l.7.7M5.6 18.4l.7-.7m11.4-11.4l.7-.7"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="sensor-status-wrap">
+                    <div class="status-indicator-badge idle" id="sensorStatusBadge">
+                        <span class="pulse-indicator"></span>
+                        <span class="badge-text" id="sensorStatusText">KHÔNG CÓ NGƯỜI (CỬA TRỐNG)</span>
+                    </div>
+                </div>
+                <div class="metric-footer">
+                    <span class="sensor-mode-indicator" id="sensorModeText">Đang quét hồng ngoại giám sát lối ra vào</span>
+                </div>
+            </div>
+
+            <!-- Thẻ 3: Trạng thái Relay / Đèn Chiếu Sáng Cửa -->
+            <div class="metric-card card-glow-relay" id="relayMetricCard">
+                <div class="card-header-row">
+                    <span class="card-category">RƠ-LE & ĐÈN CHIẾU SÁNG CỬA</span>
+                    <div class="card-icon-bubble bg-amber-subtle text-amber" id="relayIconBubble">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="2" x2="12" y2="6"></line>
+                            <line x1="12" y1="18" x2="12" y2="22"></line>
+                            <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                            <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                            <line x1="2" y1="12" x2="6" y2="12"></line>
+                            <line x1="18" y1="12" x2="22" y2="12"></line>
+                            <circle cx="12" cy="12" r="4"></circle>
+                        </svg>
+                    </div>
+                </div>
+                <div class="relay-status-wrap">
+                    <div class="relay-state-text" id="relayStateText">ĐANG TẮT</div>
+                    <div class="countdown-badge hidden font-mono" id="relayCountdownBadge">
+                        Tự tắt sau: <span id="relayCountdownNumber">0s</span>
+                    </div>
+                </div>
+                <div class="metric-footer">
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="relayProgressBar" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Thẻ 4: Thời gian lượt ra vào gần nhất -->
+            <div class="metric-card card-glow-time">
+                <div class="card-header-row">
+                    <span class="card-category">LƯỢT RA VÀO GẦN NHẤT</span>
+                    <div class="card-icon-bubble bg-emerald-subtle text-success">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </div>
+                </div>
+                <div class="metric-value font-mono font-time" id="metricLastDetectedTime">--:--:--</div>
+                <div class="metric-footer">
+                    <span class="text-subtle font-mono text-sm" id="metricLastDetectedRelative">Chưa có lượt ra vào</span>
+                    <span class="location-chip" id="metricCurrentLocation">Cửa chính</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== KHU VỰC THÂN TRANG (2 CỘT CHÍNH) ==================== -->
+        <main class="main-content-layout">
+            <!-- CỘT TRÁI: BỘ ĐIỀU KHIỂN & MÔ PHỎNG (CONTROL & SIMULATOR) -->
+            <aside class="control-column">
+                <!-- Panel 1: Mô phỏng tín hiệu người ra vào -->
+                <div class="glass-panel">
+                    <div class="panel-header">
+                        <div class="panel-title-group">
+                            <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                            </svg>
+                            <h2>Mô Phỏng Tín Hiệu Người Ra Vào</h2>
+                        </div>
+                        <span class="badge badge-accent">Giả Lập IoT</span>
+                    </div>
+
+                    <div class="panel-body">
+                        <p class="panel-tip">
+                            Nhấn nút bên dưới để mô phỏng sự kiện có người bước qua cửa hoặc đi vào vùng quét hồng ngoại của cảm biến.
+                        </p>
+
+                        <!-- Nút kích hoạt mô phỏng chính -->
+                        <button class="btn-trigger" id="btnTriggerMotion">
+                            <span class="btn-glow-layer"></span>
+                            <div class="btn-content">
+                                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+                                </svg>
+                                <span class="btn-text">MÔ PHỎNG CÓ NGƯỜI RA/VÀO (TRIGGER)</span>
+                            </div>
+                        </button>
+
+                        <!-- Chế độ giả lập tự động phát tín hiệu -->
+                        <div class="form-row-toggle">
+                            <div class="toggle-info">
+                                <label for="autoStreamToggle" class="toggle-title">Tự động mô phỏng luồng người ra vào</label>
+                                <div class="toggle-desc">Tự phát sinh người di chuyển qua cửa ngẫu nhiên sau mỗi 8-15 giây</div>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="autoStreamToggle">
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel 2: Cấu hình Thiết bị & Điều khiển Cửa/Rơ-le -->
+                <div class="glass-panel">
+                    <div class="panel-header">
+                        <div class="panel-title-group">
+                            <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                            </svg>
+                            <h2>Cấu Hình Cảm Biến & Thiết Bị Cửa</h2>
+                        </div>
+                        <button class="btn-text-action" id="btnViewConfigJson" title="Xem cấu trúc JSON config">JSON</button>
+                    </div>
+
+                    <div class="panel-body">
+                        <!-- Điều khiển cưỡng bức (Manual Override) -->
+                        <div class="control-box-highlight">
+                            <div class="form-row-toggle">
+                                <div class="toggle-info">
+                                    <label for="manualRelayToggle" class="toggle-title text-warning">
+                                        ⚡ Bật cưỡng bức Đèn/Khóa cửa (Manual Override)
+                                    </label>
+                                    <div class="toggle-desc">Ghi đè chế độ cảm biến, giữ tải luôn bật</div>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="manualRelayToggle">
+                                    <span class="slider round amber"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Tự động bật đèn khi phát hiện người -->
+                        <div class="form-row-toggle">
+                            <div class="toggle-info">
+                                <label for="autoLightingToggle" class="toggle-title">Tự động bật đèn khi có người ra vào</label>
+                                <div class="toggle-desc">Đèn cửa tự bật và đếm lùi thời gian tự tắt</div>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="autoLightingToggle" checked>
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+
+                        <!-- Cấu hình thời gian trễ tự tắt (Delay Time Slider 5s - 300s) -->
+                        <div class="form-group-slider">
+                            <div class="slider-header">
+                                <label for="timeoutSlider" class="form-label">Thời gian trễ tự ngắt đèn (Delay Time):</label>
+                                <span class="slider-value-badge font-mono" id="timeoutDisplay">15s</span>
+                            </div>
+                            <input type="range" id="timeoutSlider" min="5" max="300" step="5" value="15" class="custom-range">
+                            <div class="slider-presets">
+                                <button type="button" class="preset-btn" data-time="10">10s</button>
+                                <button type="button" class="preset-btn active" data-time="15">15s</button>
+                                <button type="button" class="preset-btn" data-time="30">30s</button>
+                                <button type="button" class="preset-btn" data-time="60">1m</button>
+                                <button type="button" class="preset-btn" data-time="120">2m</button>
+                            </div>
+                        </div>
+
+                        <!-- Vị trí lắp đặt cảm biến / cửa giám sát -->
+                        <div class="form-group">
+                            <label for="locationSelect" class="form-label">Vị trí cửa / Khu vực kiểm soát ra vào:</label>
+                            <div class="select-wrapper">
+                                <select id="locationSelect" class="custom-select">
+                                    <option value="Cửa chính (Cổng A)">Cửa chính (Cổng A)</option>
+                                    <option value="Cửa sau / Lối thoát hiểm">Cửa sau / Lối thoát hiểm</option>
+                                    <option value="Hành lang Khu văn phòng">Hành lang Khu văn phòng</option>
+                                    <option value="Kho thiết bị & Server">Kho thiết bị & Server</option>
+                                    <option value="Cổng bảo vệ / Tiếp tân">Cổng bảo vệ / Tiếp tân</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Độ nhạy PIR Sensitivity -->
+                        <div class="form-group">
+                            <label for="sensitivitySelect" class="form-label">Độ nhạy cảm biến (PIR Sensitivity):</label>
+                            <div class="select-wrapper">
+                                <select id="sensitivitySelect" class="custom-select">
+                                    <option value="Cao (Tầm xa 7m - 120°)">Cao (Tầm xa 7m - 120°)</option>
+                                    <option value="Trung bình (Tầm 5m - 90°)" selected>Trung bình (Tầm 5m - 90°)</option>
+                                    <option value="Thấp (Tầm 3m - 60°)">Thấp (Tầm 3m - 60°)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Nút lưu cấu hình -->
+                        <button class="btn-secondary w-full" id="btnSaveConfig">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                <polyline points="7 3 7 8 15 8"></polyline>
+                            </svg>
+                            Lưu cấu hình vào Bộ nhớ JSON (LocalStorage)
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- CỘT PHẢI: BẢNG NHẬT KÝ RA VÀO (ACCESS & MOTION LOGS) -->
+            <section class="logs-column">
+                <div class="glass-panel logs-panel">
+                    <div class="logs-header-wrap">
+                        <div class="logs-title-area">
+                            <div class="panel-title-group">
+                                <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                    <polyline points="10 9 9 9 8 9"></polyline>
+                                </svg>
+                                <h2>Nhật Ký Quản Lý Người Ra Vào (Access & Entry Logs)</h2>
+                            </div>
+                            <span class="log-counter-tag font-mono" id="logCounterTag">0 bản ghi</span>
+                        </div>
+
+                        <!-- Thanh công cụ lọc & tác vụ -->
+                        <div class="logs-actions-toolbar">
+                            <!-- Tìm kiếm & Lọc -->
+                            <div class="search-input-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                                <input type="text" id="logSearchInput" placeholder="Tìm theo ID, vị trí cửa, sự kiện...">
+                            </div>
+
+                            <select id="logFilterSelect" class="custom-select-small">
+                                <option value="ALL">Tất cả sự kiện</option>
+                                <option value="MOTION_START">Phát hiện có người ra/vào</option>
+                                <option value="MOTION_STOP">Không có người (Cửa trống)</option>
+                                <option value="RELAY_ON">Đèn cửa BẬT</option>
+                                <option value="RELAY_OFF">Đèn cửa TẮT</option>
+                            </select>
+
+                            <button class="btn-action-outline text-danger" id="btnClearLogs" title="Xóa toàn bộ lịch sử ra vào">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                                Xóa Nhật Ký
+                            </button>
+
+                            <button class="btn-action-primary" id="btnExportJson" title="Tải file JSON nhật ký ra vào">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Xuất JSON
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bảng dữ liệu nhật ký -->
+                    <div class="table-responsive-wrapper">
+                        <table class="data-table" id="accessLogsTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 100px;">MÃ LƯỢT (ID)</th>
+                                    <th style="width: 160px;">THỜI GIAN</th>
+                                    <th style="width: 210px;">SỰ KIỆN RA VÀO</th>
+                                    <th>VỊ TRÍ CỬA GIÁM SÁT</th>
+                                    <th style="width: 130px;">THỜI LƯỢNG</th>
+                                    <th style="width: 120px;">TRẠNG THÁI</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logsTableBody">
+                                <!-- Dòng dữ liệu được nạp động qua JavaScript -->
+                            </tbody>
+                        </table>
+
+                        <!-- Empty State khi không có dữ liệu -->
+                        <div class="empty-state hidden" id="logsEmptyState">
+                            <div class="empty-icon-wrap">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                </svg>
+                            </div>
+                            <h3>Chưa có dữ liệu người ra vào</h3>
+                            <p>Hãy bấm nút <strong>"MÔ PHỎNG CÓ NGƯỜI RA/VÀO"</strong> ở cột bên trái để thử nghiệm hoặc nạp dữ liệu mẫu.</p>
+                            <button class="btn-secondary btn-sm" id="btnSeedSampleData">Nạp Dữ Liệu Mẫu</button>
+                        </div>
+                    </div>
+
+                    <!-- Footer bảng dữ liệu -->
+                    <div class="table-footer-info">
+                        <span class="live-stream-status">
+                            <span class="pulse-indicator-small"></span>
+                            Luồng nhận tín hiệu JSON LocalStorage đang hoạt động
+                        </span>
+                        <span class="version-tag">Hệ Thống Quản Lý Người Ra Vào v2.5.4 | ESP32 PIR</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal xem JSON Cấu hình -->
+    <div class="modal-backdrop hidden" id="configJsonModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>Cấu Trúc JSON Cấu Hình (sensor_config)</h3>
+                <button class="modal-close-btn" id="btnCloseConfigModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-desc">Dữ liệu cấu hình thời gian thực được đồng bộ trong LocalStorage:</p>
+                <pre class="json-code-box font-mono" id="configJsonContent"></pre>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary btn-sm" id="btnCopyConfigJson">Sao Chép JSON</button>
+                <button class="btn-action-primary btn-sm" id="btnCloseConfigModal2">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hệ thống thông báo nổi (Toast Container) -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
